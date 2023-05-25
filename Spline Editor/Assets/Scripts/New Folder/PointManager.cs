@@ -19,11 +19,12 @@ public class PointManager : MonoBehaviour
     // Déplacer un point
     private List<GameObject> controlPointsObjects = new List<GameObject>();
     private GameObject bezierLine;
-    private bool isHolded = false;
+    private bool isHold = false;
     private GameObject closestPoint;
     private int closestIndex = 0;
-    private bool isDrawned = false; // 
-    
+    private bool isDrawned = false;
+    private string lastMethod = "casteljau";
+
     private void Start()
     {
         lineRenderer = GetComponent<LineRenderer>();
@@ -35,6 +36,7 @@ public class PointManager : MonoBehaviour
         {
             pointManager.ClearBezier();
             pointManager.GeneratePascale(controlPoints);
+            lastMethod = "pascale";
             isDrawned = true;
         });
         
@@ -42,6 +44,7 @@ public class PointManager : MonoBehaviour
         {
             pointManager.ClearBezier();
             pointManager.GenerateCasteljau(controlPoints);
+            lastMethod = "casteljau";
             isDrawned = true;
         });
         
@@ -80,7 +83,41 @@ public class PointManager : MonoBehaviour
         // Déplacement d'un point
         if (isDrawned)
         {
-            if (Input.GetMouseButtonDown(0) && !isHolded)
+            // Ajout d'un point
+            if (Input.GetKey(KeyCode.LeftShift) && Input.GetMouseButtonDown(0))
+            {
+                Debug.Log("add");
+                Vector3 screenPosition = Input.mousePosition;
+                Vector3 worldPosition = Camera.main.ScreenToWorldPoint(new Vector3(screenPosition.x, screenPosition.y, 10f));
+                
+                float minDistance = 1000f;
+                float minDistance2 = 1000f;
+                
+                int closestIndex2 = 0;
+                int i = 0;
+                foreach (var controlPointObj in controlPointsObjects)
+                {
+                    if (Vector3.Distance(controlPointObj.transform.position, worldPosition) < minDistance)
+                    {
+                        closestIndex2 = closestIndex;
+                        minDistance2 = minDistance;
+                        closestIndex = i;
+                        minDistance = Vector3.Distance(controlPointObj.transform.position, worldPosition);
+                    }
+                    else if (Vector3.Distance(controlPointObj.transform.position, worldPosition) < minDistance2)
+                    {
+                        closestIndex2 = i;
+                        minDistance2 = Vector3.Distance(controlPointObj.transform.position, worldPosition);
+                    }
+                    i++;
+                }
+
+                int minIndex = closestIndex < closestIndex2 ? closestIndex : closestIndex2;
+                controlPoints.Insert(minIndex+1, worldPosition);
+                controlPointsObjects.Insert(minIndex+1, CreateControlPoint(worldPosition));
+                LiveRefresh();
+            }
+            else if (Input.GetMouseButtonDown(0) && !isHold)
             {
                 Vector3 screenPosition = Input.mousePosition;
                 Vector3 worldPosition = Camera.main.ScreenToWorldPoint(new Vector3(screenPosition.x, screenPosition.y, 10f));
@@ -98,25 +135,46 @@ public class PointManager : MonoBehaviour
                     i++;
                 }
                 
-                isHolded = true;
+                isHold = true;
             }
-            else if (Input.GetMouseButtonUp(0) && isHolded)
+            else if (Input.GetMouseButtonUp(0) && isHold)
             {
-                isHolded = false;
+                isHold = false;
             }
 
-            if (isHolded)
+            if (isHold)
             {
                 Vector3 screenPosition = Input.mousePosition;
                 Vector3 worldPosition = Camera.main.ScreenToWorldPoint(new Vector3(screenPosition.x, screenPosition.y, 10f));
                 
                 controlPoints[closestIndex] = worldPosition;
                 controlPointsObjects[closestIndex].transform.position = worldPosition;
-                ClearBezier();
-                GenerateCasteljau(controlPoints);
-                UpdateLineRenderer();
-                polygonClosed = false;
-                ClosePolygon();
+                LiveRefresh();
+            }
+            
+            // Supprimer un point
+            if (Input.GetKeyDown(KeyCode.Delete))
+            {
+                Vector3 screenPosition = Input.mousePosition;
+                Vector3 worldPosition = Camera.main.ScreenToWorldPoint(new Vector3(screenPosition.x, screenPosition.y, 10f));
+                
+                float minDistance = 1000f;
+                
+                int i = 0;
+                foreach (var controlPointObj in controlPointsObjects)
+                {
+                    if (Vector3.Distance(controlPointObj.transform.position, worldPosition) < minDistance)
+                    {
+                        closestIndex = i;
+                        minDistance = Vector3.Distance(controlPointObj.transform.position, worldPosition);
+                    }
+                    i++;
+                }
+
+                controlPoints.RemoveAt(closestIndex);
+                Destroy(controlPointsObjects[closestIndex]);
+                controlPointsObjects.RemoveAt(closestIndex);
+                LiveRefresh();
             }
         }
     }
@@ -125,6 +183,16 @@ public class PointManager : MonoBehaviour
     private void ClearBezier()
     {
         Destroy(bezierLine);
+    }
+
+    private void LiveRefresh()
+    {
+        ClearBezier();
+        if(lastMethod == "casteljau") GenerateCasteljau(controlPoints);
+        else if (lastMethod == "pascale") GeneratePascale(controlPoints);
+        UpdateLineRenderer();
+        polygonClosed = false;
+        ClosePolygon();
     }
     
     public void GenerateCasteljau(List<Vector3> controlPoints)
