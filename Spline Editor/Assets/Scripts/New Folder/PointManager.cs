@@ -29,25 +29,22 @@ public class PointManager : MonoBehaviour
     {
         lineRenderer = GetComponent<LineRenderer>();
         
-        PointManager pointManager = pointManagerObject.GetComponent<PointManager>();
-
         // Utilise la référence pour appeler les méthodes appropriées
         pButton.onClick.AddListener(() =>
         {
-            pointManager.ClearBezier();
-            pointManager.GeneratePascale(controlPoints);
+            ClearBezier();
+            GeneratePascale(controlPoints);
             lastMethod = "pascale";
             isDrawned = true;
         });
         
         cButton.onClick.AddListener(() =>
         {
-            pointManager.ClearBezier();
-            pointManager.GenerateCasteljau(controlPoints);
+            ClearBezier();
+            GenerateCasteljau(controlPoints);
             lastMethod = "casteljau";
             isDrawned = true;
         });
-        
     }
 
     private void Update()
@@ -86,7 +83,6 @@ public class PointManager : MonoBehaviour
             // Ajout d'un point
             if (Input.GetKey(KeyCode.LeftShift) && Input.GetMouseButtonDown(0))
             {
-                Debug.Log("add");
                 Vector3 screenPosition = Input.mousePosition;
                 Vector3 worldPosition = Camera.main.ScreenToWorldPoint(new Vector3(screenPosition.x, screenPosition.y, 10f));
                 
@@ -135,7 +131,10 @@ public class PointManager : MonoBehaviour
                     i++;
                 }
                 
-                isHold = true;
+                if (minDistance < 2f)
+                {
+                    isHold = true;
+                }
             }
             else if (Input.GetMouseButtonUp(0) && isHold)
             {
@@ -178,8 +177,7 @@ public class PointManager : MonoBehaviour
             }
         }
     }
-
-
+    
     private void ClearBezier()
     {
         Destroy(bezierLine);
