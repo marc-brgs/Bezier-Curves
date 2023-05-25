@@ -116,6 +116,35 @@ public class PointManager : MonoBehaviour
                 polygonClosed = false;
                 ClosePolygon();
             }
+            
+            // Supprimer un point
+            if (Input.GetKeyDown(KeyCode.Delete))
+            {
+                Vector3 screenPosition = Input.mousePosition;
+                Vector3 worldPosition = Camera.main.ScreenToWorldPoint(new Vector3(screenPosition.x, screenPosition.y, 10f));
+                
+                float minDistance = 1000f;
+                
+                int i = 0;
+                foreach (var controlPointObj in controlPointsObjects)
+                {
+                    if (Vector3.Distance(controlPointObj.transform.position, worldPosition) < minDistance)
+                    {
+                        closestIndex = i;
+                        minDistance = Vector3.Distance(controlPointObj.transform.position, worldPosition);
+                    }
+                    i++;
+                }
+
+                controlPoints.RemoveAt(closestIndex);
+                Destroy(controlPointsObjects[closestIndex]);
+                controlPointsObjects.RemoveAt(closestIndex);
+                ClearBezier();
+                GenerateCasteljau(controlPoints);
+                UpdateLineRenderer();
+                polygonClosed = false;
+                ClosePolygon();
+            }
         }
     }
 
