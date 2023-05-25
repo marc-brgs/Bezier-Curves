@@ -78,7 +78,44 @@ public class PointManager : MonoBehaviour
         // Déplacement d'un point
         if (isDrawned)
         {
-            if (Input.GetMouseButtonDown(0) && !isHolded)
+            if (Input.GetKey(KeyCode.LeftShift) && Input.GetMouseButtonDown(0))
+            {
+                Debug.Log("add");
+                Vector3 screenPosition = Input.mousePosition;
+                Vector3 worldPosition = Camera.main.ScreenToWorldPoint(new Vector3(screenPosition.x, screenPosition.y, 10f));
+                
+                float minDistance = 1000f;
+                float minDistance2 = 1000f;
+                
+                int closestIndex2 = 0;
+                int i = 0;
+                foreach (var controlPointObj in controlPointsObjects)
+                {
+                    if (Vector3.Distance(controlPointObj.transform.position, worldPosition) < minDistance)
+                    {
+                        closestIndex2 = closestIndex;
+                        minDistance2 = minDistance;
+                        closestIndex = i;
+                        minDistance = Vector3.Distance(controlPointObj.transform.position, worldPosition);
+                    }
+                    else if (Vector3.Distance(controlPointObj.transform.position, worldPosition) < minDistance2)
+                    {
+                        closestIndex2 = i;
+                        minDistance2 = Vector3.Distance(controlPointObj.transform.position, worldPosition);
+                    }
+                    i++;
+                }
+
+                int minIndex = closestIndex < closestIndex2 ? closestIndex : closestIndex2;
+                controlPoints.Insert(minIndex+1, worldPosition);
+                controlPointsObjects.Insert(minIndex+1, CreateControlPoint(worldPosition));
+                ClearBezier();
+                GenerateCasteljau(controlPoints);
+                UpdateLineRenderer();
+                polygonClosed = false;
+                ClosePolygon();
+            }
+            else if (Input.GetMouseButtonDown(0) && !isHolded)
             {
                 Vector3 screenPosition = Input.mousePosition;
                 Vector3 worldPosition = Camera.main.ScreenToWorldPoint(new Vector3(screenPosition.x, screenPosition.y, 10f));
