@@ -19,11 +19,12 @@ public class PointManager : MonoBehaviour
     // Déplacer un point
     private List<GameObject> controlPointsObjects = new List<GameObject>();
     private GameObject bezierLine;
-    private bool isHolded = false;
+    private bool isHold = false;
     private GameObject closestPoint;
     private int closestIndex = 0;
-    private bool isDrawned = false; // 
-    
+    private bool isDrawned = false;
+    private string lastMethod = "casteljau";
+
     private void Start()
     {
         lineRenderer = GetComponent<LineRenderer>();
@@ -34,12 +35,14 @@ public class PointManager : MonoBehaviour
         pButton.onClick.AddListener(() =>
         {
             pointManager.GeneratePascale(controlPoints);
+            lastMethod = "pascale";
             isDrawned = true;
         });
         
         cButton.onClick.AddListener(() =>
         {
             pointManager.GenerateCasteljau(controlPoints);
+            lastMethod = "casteljau";
             isDrawned = true;
         });
         
@@ -78,6 +81,7 @@ public class PointManager : MonoBehaviour
         // Déplacement d'un point
         if (isDrawned)
         {
+            // Ajout d'un point
             if (Input.GetKey(KeyCode.LeftShift) && Input.GetMouseButtonDown(0))
             {
                 Debug.Log("add");
@@ -109,13 +113,9 @@ public class PointManager : MonoBehaviour
                 int minIndex = closestIndex < closestIndex2 ? closestIndex : closestIndex2;
                 controlPoints.Insert(minIndex+1, worldPosition);
                 controlPointsObjects.Insert(minIndex+1, CreateControlPoint(worldPosition));
-                ClearBezier();
-                GenerateCasteljau(controlPoints);
-                UpdateLineRenderer();
-                polygonClosed = false;
-                ClosePolygon();
+                LiveRefresh();
             }
-            else if (Input.GetMouseButtonDown(0) && !isHolded)
+            else if (Input.GetMouseButtonDown(0) && !isHold)
             {
                 Vector3 screenPosition = Input.mousePosition;
                 Vector3 worldPosition = Camera.main.ScreenToWorldPoint(new Vector3(screenPosition.x, screenPosition.y, 10f));
@@ -133,25 +133,21 @@ public class PointManager : MonoBehaviour
                     i++;
                 }
                 
-                isHolded = true;
+                isHold = true;
             }
-            else if (Input.GetMouseButtonUp(0) && isHolded)
+            else if (Input.GetMouseButtonUp(0) && isHold)
             {
-                isHolded = false;
+                isHold = false;
             }
 
-            if (isHolded)
+            if (isHold)
             {
                 Vector3 screenPosition = Input.mousePosition;
                 Vector3 worldPosition = Camera.main.ScreenToWorldPoint(new Vector3(screenPosition.x, screenPosition.y, 10f));
                 
                 controlPoints[closestIndex] = worldPosition;
                 controlPointsObjects[closestIndex].transform.position = worldPosition;
-                ClearBezier();
-                GenerateCasteljau(controlPoints);
-                UpdateLineRenderer();
-                polygonClosed = false;
-                ClosePolygon();
+                LiveRefresh();
             }
             
             // Supprimer un point
@@ -176,11 +172,7 @@ public class PointManager : MonoBehaviour
                 controlPoints.RemoveAt(closestIndex);
                 Destroy(controlPointsObjects[closestIndex]);
                 controlPointsObjects.RemoveAt(closestIndex);
-                ClearBezier();
-                GenerateCasteljau(controlPoints);
-                UpdateLineRenderer();
-                polygonClosed = false;
-                ClosePolygon();
+                LiveRefresh();
             }
         }
     }
@@ -189,6 +181,16 @@ public class PointManager : MonoBehaviour
     private void ClearBezier()
     {
         Destroy(bezierLine);
+    }
+
+    private void LiveRefresh()
+    {
+        ClearBezier();
+        if(lastMethod == "casteljau") GenerateCasteljau(controlPoints);
+        else if (lastMethod == "pascale") GeneratePascale(controlPoints);
+        UpdateLineRenderer();
+        polygonClosed = false;
+        ClosePolygon();
     }
     
     public void GenerateCasteljau(List<Vector3> controlPoints)
