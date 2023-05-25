@@ -1,24 +1,38 @@
-using System;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UIElements;
+using UnityEngine.UI;
+using Button = UnityEngine.UI.Button;
 
 public class PointManager : MonoBehaviour
 {
     public GameObject controlPointPrefab;  // Le préfabriqué du point de contrôle
-
     private List<Vector3> controlPoints = new List<Vector3>();  // Liste des points de contrôle
     private bool inputEnabled = true;  // Activation/désactivation de la détection des clics
-
     private LineRenderer lineRenderer;
-    
     private bool polygonClosed = false;
-
-
+    public Button cButton;
+    public Button pButton; 
+    
+    public GameObject pointManagerObject;
 
     private void Start()
     {
         lineRenderer = GetComponent<LineRenderer>();
+        
+        PointManager pointManager = pointManagerObject.GetComponent<PointManager>();
+
+        // Utilise la référence pour appeler les méthodes appropriées
+        pButton.onClick.AddListener(() =>
+        {
+            pointManager.GeneratePascale(controlPoints);
+        });
+        
+        cButton.onClick.AddListener(() =>
+        {
+            pointManager.GenerateCasteljau(controlPoints);
+        });
+        
     }
 
     private void Update()
@@ -26,10 +40,8 @@ public class PointManager : MonoBehaviour
         // Vérifie si la détection des clics est activée
         if (inputEnabled)
         {
-            // Vérifie si le bouton gauche de la souris est enfoncé
             if (Input.GetMouseButtonDown(0))
             {
-                // Obtient la position du clic dans l'espace de l'écran
                 Vector3 screenPosition = Input.mousePosition;
 
                 // Convertit la position du clic de l'écran à la position dans le monde
@@ -37,30 +49,30 @@ public class PointManager : MonoBehaviour
 
                 // Ajoute le point de contrôle à la liste
                 controlPoints.Add(worldPosition);
-
-                // Crée le point de contrôle à la position cliquée
                 CreateControlPoint(worldPosition);
-                
                 UpdateLineRenderer();
             }
-
-            // Vérifie si le bouton droit de la souris est enfoncé
             if (Input.GetMouseButtonDown(1))
             {
-                // Termine la séquence de positionnement en désactivant la détection des clics
                 inputEnabled = false;
                 ClosePolygon();
                 
-                // Génère la courbe de Bézier associée aux points de contrôle
-                GenerateBezierCurve(controlPoints);
             }
         }
+
+        if (!inputEnabled)
+        {
+            cButton.gameObject.SetActive(true);
+            pButton.gameObject.SetActive(true);
+        }
+        
+        
     }
     
     
     
     
-    private void GenerateBezierCurve(List<Vector3> controlPoints)
+    public void GenerateCasteljau(List<Vector3> controlPoints)
 {
     // Vérifie si au moins deux points de contrôle sont présents
     if (controlPoints.Count < 2)
@@ -70,7 +82,7 @@ public class PointManager : MonoBehaviour
     }
 
     // Définit le nombre de points sur la courbe de Bézier (par exemple, 100 pour une courbe plus lisse)
-    int numPoints = 100;
+    int numPoints = 200;
 
     // Crée un tableau pour stocker les points de la courbe de Bézier
     Vector3[] bezierPoints = new Vector3[numPoints];
@@ -120,16 +132,7 @@ public class PointManager : MonoBehaviour
 
     
     
-    
-    
-    
-    
-    
-    
-    
-    /*
-    
-    private void GenerateBezierCurve(List<Vector3> controlPoints)
+    public void GeneratePascale(List<Vector3> controlPoints)
     {
         // Vérifie si au moins deux points de contrôle sont présents
         if (controlPoints.Count < 2)
@@ -206,9 +209,14 @@ public class PointManager : MonoBehaviour
         return coefficient;
     }
 
-    
-    */
 
+    public int test()
+    {
+        int i = 1;
+        return i;
+    }
+    
+    
     private void UpdateLineRenderer()
     {
         // Définit le nombre de positions du LineRenderer sur la taille de la liste des points de contrôle
@@ -223,11 +231,9 @@ public class PointManager : MonoBehaviour
     
     private void ClosePolygon()
     {
-        // Vérifie si le polygone est déjà fermé
         if (polygonClosed)
             return;
-
-        // Vérifie si au moins deux points de contrôle sont présents
+        
         if (controlPoints.Count >= 2)
         {
             // Ajoute le premier point de contrôle à la fin de la liste
@@ -238,6 +244,7 @@ public class PointManager : MonoBehaviour
 
             // Marque le polygone comme étant fermé
             polygonClosed = true;
+            controlPoints.RemoveAt(controlPoints.Count - 1);
         }
     }
 
