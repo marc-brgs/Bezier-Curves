@@ -33,12 +33,14 @@ public class PointManager : MonoBehaviour
         // Utilise la référence pour appeler les méthodes appropriées
         pButton.onClick.AddListener(() =>
         {
+            pointManager.ClearBezier();
             pointManager.GeneratePascale(controlPoints);
             isDrawned = true;
         });
         
         cButton.onClick.AddListener(() =>
         {
+            pointManager.ClearBezier();
             pointManager.GenerateCasteljau(controlPoints);
             isDrawned = true;
         });
