@@ -167,21 +167,21 @@ public class PointManager : MonoBehaviour
         }
 
         // Crée un GameObject vide pour contenir les points de la courbe de Bézier
-        GameObject bezierCurve = new GameObject("Bezier Curve");
+        GameObject casteljauCurve = new GameObject("Casteljau Curve");
 
         // Ajoute un composant LineRenderer au GameObject pour afficher la courbe de Bézier
-        LineRenderer bezierLineRenderer = bezierCurve.AddComponent<LineRenderer>();
+        LineRenderer bezierLineRenderer = casteljauCurve.AddComponent<LineRenderer>();
         bezierLineRenderer.positionCount = numPoints;
         
         bezierLineRenderer.startWidth = 0.1f;
         bezierLineRenderer.endWidth = 0.1f;
         bezierLineRenderer.material = new Material(Shader.Find("Sprites/Default"));
-        bezierLineRenderer.startColor = Color.blue;
-        bezierLineRenderer.endColor = Color.blue;
+        bezierLineRenderer.startColor = Color.yellow;
+        bezierLineRenderer.endColor = Color.yellow;
 
         // Assigne les points de la courbe de Bézier au LineRenderer
         bezierLineRenderer.SetPositions(bezierPoints);
-        bezierLine = bezierCurve;
+        bezierLine = casteljauCurve;
     }
 
     
@@ -231,10 +231,10 @@ public class PointManager : MonoBehaviour
         }
 
         // Crée un GameObject vide pour contenir les points de la courbe de Bézier
-        GameObject bezierCurve = new GameObject("Bezier Curve");
+        GameObject pascaleCurve = new GameObject("Pascale Curve");
 
         // Ajoute un composant LineRenderer au GameObject pour afficher la courbe de Bézier
-        LineRenderer bezierLineRenderer = bezierCurve.AddComponent<LineRenderer>();
+        LineRenderer bezierLineRenderer = pascaleCurve.AddComponent<LineRenderer>();
         bezierLineRenderer.positionCount = numPoints;
         
         bezierLineRenderer.startWidth = 0.1f;
@@ -244,7 +244,7 @@ public class PointManager : MonoBehaviour
         bezierLineRenderer.endColor = Color.blue;
         
         bezierLineRenderer.SetPositions(bezierPoints);
-        bezierLine = bezierCurve;
+        bezierLine = pascaleCurve;
     }
     
     
