@@ -108,6 +108,8 @@ public class PointManager : MonoBehaviour
                 }
 
                 int minIndex = closestIndex < closestIndex2 ? closestIndex : closestIndex2;
+                if (minIndex == 0 && (closestIndex == controlPoints.Count-1 || closestIndex2 == controlPoints.Count-1))
+                    minIndex = controlPoints.Count-1; // point entre le premier et le dernier
                 controlPoints.Insert(minIndex+1, worldPosition);
                 controlPointsObjects.Insert(minIndex+1, CreateControlPoint(worldPosition));
                 LiveRefresh();
