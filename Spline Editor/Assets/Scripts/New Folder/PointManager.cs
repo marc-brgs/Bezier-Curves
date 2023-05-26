@@ -67,14 +67,10 @@ public class PointManager : MonoBehaviour
             if (Input.GetMouseButtonDown(1))
             {
                 inputEnabled = false;
+                cButton.gameObject.SetActive(true);
+                pButton.gameObject.SetActive(true);
                 ClosePolygon();
             }
-        }
-
-        if (!inputEnabled)
-        {
-            cButton.gameObject.SetActive(true);
-            pButton.gameObject.SetActive(true);
         }
 
         // Déplacement d'un point
@@ -176,11 +172,37 @@ public class PointManager : MonoBehaviour
                 LiveRefresh();
             }
         }
+
+
+        if (Input.GetKeyDown(KeyCode.C))
+        {
+            ClearPoints();
+            ClearBezier();
+           // lineRenderer.positionCount = 0;
+            inputEnabled = true;
+            cButton.gameObject.SetActive(false);
+            pButton.gameObject.SetActive(false);
+            controlPoints.Clear();
+            controlPointsObjects.Clear();
+            UpdateLineRenderer();
+            polygonClosed = false;
+        }
+        
     }
     
     private void ClearBezier()
     {
         Destroy(bezierLine);
+    }
+
+    private void ClearPoints()
+    {
+        GameObject[] objectsToDestroy = GameObject.FindGameObjectsWithTag("Point");
+        
+        foreach (GameObject obj in objectsToDestroy)
+        {
+            Destroy(obj);
+        }
     }
 
     private void LiveRefresh()
