@@ -240,6 +240,8 @@ public class PointManager : MonoBehaviour
     
     public void GenerateCasteljau(List<Vector3> controlPoints)
     {
+        float startTime = Time.realtimeSinceStartup;
+        
         // Vérifie si au moins deux points de contrôle sont présents
         if (controlPoints.Count < 2)
         {
@@ -295,12 +297,19 @@ public class PointManager : MonoBehaviour
         // Assigne les points de la courbe de Bézier au LineRenderer
         bezierLineRenderer.SetPositions(bezierPoints);
         bezierLine = casteljauCurve;
+        
+        float elapsedTime = Time.realtimeSinceStartup - startTime;
+
+        // Affiche le temps de calcul
+        Debug.Log("Temps de calcul : " + elapsedTime + " secondes");
     }
 
     
     
     public void GeneratePascale(List<Vector3> controlPoints)
     {
+        float startTime = Time.realtimeSinceStartup;
+        
         // Vérifie si au moins deux points de contrôle sont présents
         if (controlPoints.Count < 2)
         {
@@ -358,6 +367,11 @@ public class PointManager : MonoBehaviour
         
         bezierLineRenderer.SetPositions(bezierPoints);
         bezierLine = pascaleCurve;
+        
+        float elapsedTime = Time.realtimeSinceStartup - startTime;
+
+        // Affiche le temps de calcul
+        Debug.Log("Temps de calcul : " + elapsedTime + " secondes");
     }
     
     
