@@ -24,6 +24,9 @@ public class PointManager : MonoBehaviour
     private int closestIndex = 0;
     private bool isDrawned = false;
     private string lastMethod = "casteljau";
+    
+    // Lissage
+    private int step = 100;
 
     private void Start()
     {
@@ -171,6 +174,26 @@ public class PointManager : MonoBehaviour
                 controlPointsObjects.RemoveAt(closestIndex);
                 LiveRefresh();
             }
+
+            if (Input.GetKeyDown(KeyCode.P))
+            {
+                if (step >= 100) step = 100;
+                else if (step > 10) step += 10;
+                else step++;
+                
+                Debug.Log(step);
+                LiveRefresh();
+            }
+            if (Input.GetKeyDown(KeyCode.M))
+            {
+                if (step <= 2) step = 2;
+                else if (step < 10) step--;
+                else if (step < 20) step -= 2;
+                else step -= 10;
+                
+                Debug.Log(step);
+                LiveRefresh();
+            }
         }
 
 
@@ -225,7 +248,7 @@ public class PointManager : MonoBehaviour
         }
 
         // Définit le nombre de points sur la courbe de Bézier (par exemple, 100 pour une courbe plus lisse)
-        int numPoints = 200;
+        int numPoints = step;
 
         // Crée un tableau pour stocker les points de la courbe de Bézier
         Vector3[] bezierPoints = new Vector3[numPoints];
@@ -286,7 +309,7 @@ public class PointManager : MonoBehaviour
         }
 
         // Définit le nombre de points sur la courbe de Bézier (par exemple, 100 pour une courbe plus lisse)
-        int numPoints = 100;
+        int numPoints = step;
 
         // Crée un tableau pour stocker les points de la courbe de Bézier
         Vector3[] bezierPoints = new Vector3[numPoints];
