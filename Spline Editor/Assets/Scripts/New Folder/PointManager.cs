@@ -196,6 +196,12 @@ public class PointManager : MonoBehaviour
                 Debug.Log(step);
                 LiveRefresh();
             }
+            
+            if (Input.GetKeyDown(KeyCode.E))
+            {
+                ExtrudeBezierCurve(controlPoints, 1, 1f);
+            }
+            
         }
 
 
@@ -213,7 +219,103 @@ public class PointManager : MonoBehaviour
         }
         
     }
-    
+
+    public void ExtrudeBezierCurve(List<Vector3> controlPoints, float height, float scale)
+    {
+        // Vérifie si la courbe de Bézier contient suffisamment de points de contrôle
+        if (controlPoints.Count < 2)
+        {
+            Debug.LogWarning("Il doit y avoir au moins deux points de contrôle pour générer une extrusion 3D.");
+            return;
+        }
+
+        // Calcule le nombre de points sur la courbe de Bézier
+        int numPoints = step;
+        Vector3[] bezierPoints = new Vector3[numPoints];
+
+        // Parcourt les valeurs de paramètre t de 0 à 1 et calcule les points sur la courbe de Bézier
+        for (int i = 0; i < numPoints; i++)
+        {
+            float t = i / (float)(numPoints - 1);
+            Vector3 point = DeCasteljau(controlPoints, t);
+            bezierPoints[i] = point;
+        }
+
+        // Crée une liste de vertices pour le maillage de l'extrusion
+        List<Vector3> vertices = new List<Vector3>();
+
+        // Ajoute les vertices pour la base inférieure
+        for (int i = 0; i < numPoints; i++)
+        {
+            vertices.Add(bezierPoints[i]);
+        }
+
+        // Ajoute les vertices pour la base supérieure en effectuant l'agrandissement ou la réduction
+        for (int i = 0; i < numPoints; i++)
+        {
+            Vector3 scaledPoint = bezierPoints[i] + Vector3.forward * height;
+            Vector3 scaledVector = (scaledPoint - bezierPoints[i]) * scale;
+            vertices.Add(bezierPoints[i] + scaledVector);
+        }
+
+        // Crée une liste de triangles pour le maillage de l'extrusion
+        List<int> triangles = new List<int>();
+
+        // Ajoute les triangles pour les côtés de l'extrusion
+        for (int i = 0; i < numPoints - 1; i++)
+        {
+            // Triangle 1
+            triangles.Add(i);
+            triangles.Add(i + 1);
+            triangles.Add(i + numPoints);
+
+            // Triangle 2
+            triangles.Add(i + numPoints);
+            triangles.Add(i + 1);
+            triangles.Add(i + numPoints + 1);
+        }
+
+        // Ferme l'extrusion en ajoutant les triangles reliant les derniers points
+        // Triangle 1
+        triangles.Add(numPoints - 1);
+        triangles.Add(0);
+        triangles.Add(numPoints - 1 + numPoints);
+
+        // Triangle 2
+        triangles.Add(numPoints - 1 + numPoints);
+        triangles.Add(0);
+        triangles.Add(numPoints);
+
+        // Crée un GameObject pour contenir le maillage de l'extrusion
+        GameObject extrusionObject = new GameObject("Extrusion");
+        MeshRenderer meshRenderer = extrusionObject.AddComponent<MeshRenderer>();
+        MeshFilter meshFilter = extrusionObject.AddComponent<MeshFilter>();
+        Mesh mesh = new Mesh();
+
+        // Assigne les vertices et triangles au maillage
+        mesh.SetVertices(vertices);
+        mesh.SetTriangles(triangles, 0);
+
+        // Recalcule les normales et les tangentes du maillage
+        mesh.RecalculateNormals();
+        mesh.RecalculateTangents();
+
+        // Assigne le maillage au composant MeshFilter
+        meshFilter.mesh = mesh;
+        
+        // Crée un nouveau matériau
+        Material material = new Material(Shader.Find("Standard"));
+
+        // Applique une couleur au matériau
+        material.color = Color.red;
+
+        // Assigner le matériau au MeshRenderer
+        meshRenderer.material = material;
+        
+        // Place l'objet extrusion dans la scène
+        extrusionObject.transform.position = new Vector3(0f, 0f, height);
+    }
+
     private void ClearBezier()
     {
         Destroy(bezierLine);
