@@ -199,7 +199,7 @@ public class PointManager : MonoBehaviour
             
             if (Input.GetKeyDown(KeyCode.E))
             {
-                ExtrudeBezierCurve(controlPoints, 1, 1f);
+                ExtrudeBezierCurve(controlPoints, 5, 2f);
             }
             
         }
@@ -221,118 +221,170 @@ public class PointManager : MonoBehaviour
     }
 
     public void ExtrudeBezierCurve(List<Vector3> controlPoints, float height, float scale)
+{
+    // Calcule le nombre de points sur la courbe de Bézier
+    int numPoints = step;
+    Vector3[] bezierPoints = new Vector3[numPoints];
+
+    // Parcourt les valeurs de paramètre t de 0 à 1 et calcule les points sur la courbe de Bézier
+    for (int i = 0; i < numPoints; i++)
     {
-        // Vérifie si la courbe de Bézier contient suffisamment de points de contrôle
-        if (controlPoints.Count < 2)
-        {
-            Debug.LogWarning("Il doit y avoir au moins deux points de contrôle pour générer une extrusion 3D.");
-            return;
-        }
+        float t = i / (float)(numPoints - 1);
+        Vector3 point = DeCasteljau(controlPoints, t);
+        bezierPoints[i] = point;
+    }
 
-        // Calcule le nombre de points sur la courbe de Bézier
-        int numPoints = step;
-        Vector3[] bezierPoints = new Vector3[numPoints];
+    // Crée une liste de vertices pour le maillage de l'extrusion
+    List<Vector3> vertices = new List<Vector3>();
 
-        // Parcourt les valeurs de paramètre t de 0 à 1 et calcule les points sur la courbe de Bézier
-        for (int i = 0; i < numPoints; i++)
-        {
-            float t = i / (float)(numPoints - 1);
-            Vector3 point = DeCasteljau(controlPoints, t);
-            bezierPoints[i] = point;
-        }
+    // Ajoute les vertices pour la base inférieure
+    for (int i = 0; i < numPoints; i++)
+    {
+        vertices.Add(bezierPoints[i]);
+    }
 
-        // Crée une liste de vertices pour le maillage de l'extrusion
-        List<Vector3> vertices = new List<Vector3>();
+    // Ajoute les vertices pour la base supérieure en effectuant l'agrandissement ou la réduction
+    for (int i = 0; i < numPoints; i++)
+    {
+        Vector3 scaledPoint = bezierPoints[i] + Vector3.forward * height;
+        Vector3 scaledVector = (scaledPoint - bezierPoints[i]) * scale;
+        vertices.Add(bezierPoints[i] + scaledVector);
+    }
 
-        // Ajoute les vertices pour la base inférieure
-        for (int i = 0; i < numPoints; i++)
-        {
-            vertices.Add(bezierPoints[i]);
-        }
+    // Crée une liste de triangles pour le maillage de l'extrusion
+    List<int> triangles = new List<int>();
 
-        // Ajoute les vertices pour la base supérieure en effectuant l'agrandissement ou la réduction
-        for (int i = 0; i < numPoints; i++)
-        {
-            Vector3 scaledPoint = bezierPoints[i] + Vector3.forward * height;
-            Vector3 scaledVector = (scaledPoint - bezierPoints[i]) * scale;
-            vertices.Add(bezierPoints[i] + scaledVector);
-        }
-
-        // Crée une liste de triangles pour le maillage de l'extrusion
-        List<int> triangles = new List<int>();
-
-        // Ajoute les triangles pour les côtés de l'extrusion
-        for (int i = 0; i < numPoints - 1; i++)
-        {
-            // Triangle 1
-            triangles.Add(i);
-            triangles.Add(i + 1);
-            triangles.Add(i + numPoints);
-
-            // Triangle 2
-            triangles.Add(i + numPoints);
-            triangles.Add(i + 1);
-            triangles.Add(i + numPoints + 1);
-        }
-
-        // Ferme l'extrusion en ajoutant les triangles reliant les derniers points
+    // Ajoute les triangles pour les côtés de l'extrusion
+    for (int i = 0; i < numPoints - 1; i++)
+    {
         // Triangle 1
-        triangles.Add(numPoints - 1);
-        triangles.Add(0);
-        triangles.Add(numPoints - 1 + numPoints);
+        triangles.Add(i);
+        triangles.Add(i + 1);
+        triangles.Add(i + numPoints);
 
         // Triangle 2
-        triangles.Add(numPoints - 1 + numPoints);
-        triangles.Add(0);
-        triangles.Add(numPoints);
-
-        // Crée un GameObject pour contenir le maillage de l'extrusion
-        GameObject extrusionObject = new GameObject("Extrusion");
-        MeshRenderer meshRenderer = extrusionObject.AddComponent<MeshRenderer>();
-        MeshFilter meshFilter = extrusionObject.AddComponent<MeshFilter>();
-        Mesh mesh = new Mesh();
-
-        // Assigne les vertices et triangles au maillage
-        mesh.SetVertices(vertices);
-        mesh.SetTriangles(triangles, 0);
-
-        // Recalcule les normales et les tangentes du maillage
-        mesh.RecalculateNormals();
-        mesh.RecalculateTangents();
-
-        // Assigne le maillage au composant MeshFilter
-        meshFilter.mesh = mesh;
-        
-        // Crée un nouveau matériau
-        Material material = new Material(Shader.Find("Standard"));
-
-        // Applique une couleur au matériau
-        material.color = Color.red;
-
-        // Assigner le matériau au MeshRenderer
-        meshRenderer.material = material;
-        
-        // Inverse extrusion normals
-        var indices = mesh.triangles;
-        var triangleCount = indices.Length / 3;
-        for(var i = 0; i < triangleCount; i++)
-        {
-            var tmp = indices[i*3];
-            indices[i*3] = indices[i*3 + 1];
-            indices[i*3 + 1] = tmp;
-        }
-        mesh.triangles = indices;
-        var normals = mesh.normals;
-        for(var n = 0; n < normals.Length; n++)
-        {
-            normals[n] = -normals[n];
-        }
-        mesh.normals = normals;
-
-        
-        // Place l'objet extrusion dans la scène
-        extrusionObject.transform.position = new Vector3(0f, 0f, 0f);
+        triangles.Add(i + numPoints);
+        triangles.Add(i + 1);
+        triangles.Add(i + numPoints + 1);
     }
+
+    // Ferme l'extrusion en ajoutant les triangles reliant les derniers points
+    // Triangle 1
+    triangles.Add(numPoints - 1);
+    triangles.Add(0);
+    triangles.Add(numPoints - 1 + numPoints);
+
+    // Triangle 2
+    triangles.Add(numPoints - 1 + numPoints);
+    triangles.Add(0);
+    triangles.Add(numPoints);
+
+    // Crée un GameObject pour contenir le maillage de l'extrusion
+    GameObject extrusionObject = new GameObject("Extrusion");
+    MeshRenderer meshRenderer = extrusionObject.AddComponent<MeshRenderer>();
+    MeshFilter meshFilter = extrusionObject.AddComponent<MeshFilter>();
+    Mesh mesh = new Mesh();
+
+    // Assigne les vertices et triangles au maillage
+    mesh.SetVertices(vertices);
+    mesh.SetTriangles(triangles, 0);
+
+    // Recalcule les normales et les tangentes du maillage
+    mesh.RecalculateNormals();
+    mesh.RecalculateTangents();
+
+    // Assigne le maillage au composant MeshFilter
+    meshFilter.mesh = mesh;
+    
+    // Inverse extrusion normals
+    var indices = mesh.triangles;
+    var triangleCount = indices.Length / 3;
+    for(var i = 0; i < triangleCount; i++)
+    {
+        var tmp = indices[i*3];
+        indices[i*3] = indices[i*3 + 1];
+        indices[i*3 + 1] = tmp;
+    }
+    mesh.triangles = indices;
+    var normals = mesh.normals;
+    for(var n = 0; n < normals.Length; n++)
+    {
+        normals[n] = -normals[n];
+    }
+    mesh.normals = normals;
+
+    // Crée un nouveau matériau
+    Material material = new Material(Shader.Find("Standard"));
+
+    // Applique une couleur au matériau
+    material.color = Color.red;
+
+    // Assigner le matériau au MeshRenderer
+    meshRenderer.material = material;
+
+    // Ajoute les deux faces manquantes
+
+    // Crée une liste de vertices pour les faces
+    List<Vector3> faceVertices = new List<Vector3>();
+
+    // Ajoute les vertices pour la face inférieure
+    for (int i = 0; i < numPoints; i++)
+    {
+        faceVertices.Add(bezierPoints[i]);
+    }
+
+    // Ajoute les vertices pour la face supérieure
+    for (int i = 0; i < numPoints; i++)
+    {
+        Vector3 scaledPoint = bezierPoints[i] + Vector3.forward * height;
+        Vector3 scaledVector = (scaledPoint - bezierPoints[i]) * scale;
+        faceVertices.Add(bezierPoints[i] + scaledVector);
+    }
+
+    // Crée une liste de triangles pour les faces
+    List<int> faceTriangles = new List<int>();
+
+    // Ajoute les triangles pour la face inférieure
+    for (int i = 1; i < numPoints - 1; i++)
+    {
+        faceTriangles.Add(0);
+        faceTriangles.Add(i);
+        faceTriangles.Add(i + 1);
+    }
+
+    // Ajoute les triangles pour la face supérieure
+    int startIndex = numPoints;
+    for (int i = startIndex + 1; i < startIndex + numPoints - 1; i++)
+    {
+        faceTriangles.Add(startIndex);
+        faceTriangles.Add(i + 1);
+        faceTriangles.Add(i);
+    }
+
+    // Crée un GameObject pour contenir les faces
+    GameObject facesObject = new GameObject("Faces");
+    MeshRenderer facesRenderer = facesObject.AddComponent<MeshRenderer>();
+    MeshFilter facesFilter = facesObject.AddComponent<MeshFilter>();
+    Mesh facesMesh = new Mesh();
+
+    // Assigne les vertices et triangles au maillage des faces
+    facesMesh.SetVertices(faceVertices);
+    facesMesh.SetTriangles(faceTriangles, 0);
+
+    // Recalcule les normales et les tangentes du maillage des faces
+    facesMesh.RecalculateNormals();
+    facesMesh.RecalculateTangents();
+
+    // Assigne le maillage des faces au composant MeshFilter
+    facesFilter.mesh = facesMesh;
+
+    // Assigner le matériau au MeshRenderer des faces
+    facesRenderer.material = material;
+
+    // Place l'objet extrusion dans la scène
+    extrusionObject.transform.position = new Vector3(0f, 0f, 0f);
+}
+
 
     private void ClearBezier()
     {
