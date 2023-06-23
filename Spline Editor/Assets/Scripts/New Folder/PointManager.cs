@@ -312,6 +312,24 @@ public class PointManager : MonoBehaviour
         // Assigner le matériau au MeshRenderer
         meshRenderer.material = material;
         
+        // Inverse extrusion normals
+        var indices = mesh.triangles;
+        var triangleCount = indices.Length / 3;
+        for(var i = 0; i < triangleCount; i++)
+        {
+            var tmp = indices[i*3];
+            indices[i*3] = indices[i*3 + 1];
+            indices[i*3 + 1] = tmp;
+        }
+        mesh.triangles = indices;
+        var normals = mesh.normals;
+        for(var n = 0; n < normals.Length; n++)
+        {
+            normals[n] = -normals[n];
+        }
+        mesh.normals = normals;
+
+        
         // Place l'objet extrusion dans la scène
         extrusionObject.transform.position = new Vector3(0f, 0f, height);
     }
