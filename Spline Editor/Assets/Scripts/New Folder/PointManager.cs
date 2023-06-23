@@ -331,7 +331,7 @@ public class PointManager : MonoBehaviour
 
         
         // Place l'objet extrusion dans la scène
-        extrusionObject.transform.position = new Vector3(0f, 0f, height);
+        extrusionObject.transform.position = new Vector3(0f, 0f, 0f);
     }
 
     private void ClearBezier()
