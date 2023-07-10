@@ -434,8 +434,6 @@ public class PointManager : MonoBehaviour
         Material material = new Material(Shader.Find("Standard"));
         material.color = Color.red;
         mr.material = material;
-        
-        mr.material = new Material(Shader.Find("Standard"));
     }
 
      public void GeneralizedExtrudeBezierCurve(List<Vector3> controlPoints, List<Vector3> pathPoints)
