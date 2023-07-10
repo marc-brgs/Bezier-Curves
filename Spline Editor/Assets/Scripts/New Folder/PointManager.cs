@@ -28,6 +28,8 @@ public class PointManager : MonoBehaviour
     
     // Lissage
     private int step = 100;
+    public int heightES = 5;
+    public float scaleES = 1f;
 
     private void Start()
     {
@@ -200,19 +202,19 @@ public class PointManager : MonoBehaviour
             
             if (Input.GetKeyDown(KeyCode.E))
             {
-                ExtrudeBezierCurve(controlPoints, 3, .5f);
+                ExtrudeBezierCurve(controlPoints, heightES, scaleES);
             }
 
             if (Input.GetKeyDown(KeyCode.F))
             {
                 List<Vector3> pathPoints = new List<Vector3>();
                 pathPoints.Add(new Vector3(0f, 0f, 0f));
-                pathPoints.Add(new Vector3(0f, 0f, 1f));
-                pathPoints.Add(new Vector3(0f, 1f, 2f));
-                pathPoints.Add(new Vector3(0f, 0f, 3f));
-                pathPoints.Add(new Vector3(0f, 1f, 4f));
-                pathPoints.Add(new Vector3(0f, 0f, 5f));
-                pathPoints.Add(new Vector3(0f, 1f, 6f));
+                pathPoints.Add(new Vector3(0f, 0f, 6f));
+                pathPoints.Add(new Vector3(0f, -4f, 10f));
+                pathPoints.Add(new Vector3(0f, 4f, 14f));
+                pathPoints.Add(new Vector3(0f, -4f, 18f));
+                pathPoints.Add(new Vector3(0f, 4f, 22f));
+                pathPoints.Add(new Vector3(0f, -4f, 26f));
                 GeneralizedExtrudeBezierCurve(controlPoints, pathPoints);
             }
 
@@ -220,13 +222,13 @@ public class PointManager : MonoBehaviour
             {
                 List<Vector3> pathPoints = new List<Vector3>();
                 pathPoints.Add(new Vector3(0f, 0f, 0f));
-                pathPoints.Add(new Vector3(0f, 0f, 1f));
-                pathPoints.Add(new Vector3(0f, 1f, 2f));
-                pathPoints.Add(new Vector3(0f, 0f, 3f));
-                pathPoints.Add(new Vector3(0f, 1f, 4f));
-                pathPoints.Add(new Vector3(0f, 0f, 5f));
-                pathPoints.Add(new Vector3(0f, 1f, 6f));
-                TrajExtru(controlPoints, pathPoints);
+                pathPoints.Add(new Vector3(0f, 0f, 6f));
+                pathPoints.Add(new Vector3(0f, -4f, 10f));
+                pathPoints.Add(new Vector3(0f, 4f, 14f));
+                pathPoints.Add(new Vector3(0f, -4f, 18f));
+                pathPoints.Add(new Vector3(0f, 4f, 22f));
+                pathPoints.Add(new Vector3(0f, -4f, 26f));
+                GeneralizedExtrudeBezierCurveWithNormals(controlPoints, pathPoints);
             }
         }
 
@@ -264,6 +266,12 @@ public class PointManager : MonoBehaviour
         List<int> tris = new List<int>();
         int sizeB = bezierPoints.Count;
 
+        List<Vector3> scaleOffset = new List<Vector3>();
+        for (int i = 0; i < bezierPoints.Count; i++)
+        {
+            Vector3 p = bezierPoints[i];
+            scaleOffset.Add(new Vector3((p.x * scale) - p.x, (p.y * scale) - p.y, (p.z * scale) - p.z));
+        }
         // Subdivision
         for (int i = 0; i < height + 1; i++)
         {
@@ -271,7 +279,8 @@ public class PointManager : MonoBehaviour
             for (int n = 0; n < sizeB; n++)
             {
                 Vector3 p = bezierPoints[n];
-                nextBezierPoints.Add(new Vector3(p.x * scale, p.y * scale, p.z + 1));
+                Vector3 o = scaleOffset[n];
+                nextBezierPoints.Add(new Vector3(p.x + (o.x / height), p.y + (o.y / height), p.z + 1));
             }
             vertices.AddRange(nextBezierPoints);
             bezierPoints.Clear();
@@ -330,9 +339,8 @@ public class PointManager : MonoBehaviour
         meshGameObject.transform.position = new Vector3(0f, 0f, 0f);
     }
      
-     public void TrajExtru(List<Vector3> controlPoints, List<Vector3> trajectoire)
+   public void GeneralizedExtrudeBezierCurveWithNormals(List<Vector3> controlPoints, List<Vector3> pathPoints)
     {
-        //Extrusion avec trajectoire
         int numPoints = step;
         List<Vector3> bezierPoints = new List<Vector3>();
 
@@ -344,77 +352,65 @@ public class PointManager : MonoBehaviour
             bezierPoints.Add(point);
         }
         
+        // Calcule des points bezier de la trajectoire à suivre
+        List<Vector3> trajectoire = new List<Vector3>();
+        for (int i = 0; i < numPoints; i++)
+        {
+            float t = i / (float)(numPoints - 1);
+            Vector3 point = DeCasteljau(pathPoints, t);
+            trajectoire.Add(point);
+        }
+        
         List<Vector3> nextBezierPoints = new List<Vector3>();
         List<Vector3> vertices = new List<Vector3>(bezierPoints);
         List<int> tris = new List<int>();
-        //List<Color32> colors = new List<Color32>();
         int sizeB = bezierPoints.Count;
         
-        Vector3 normalBezier = new Vector3(0, 0, -1);
-        Vector3 milieu = new Vector3(0, 0, 1.3f);
-
-        int height = trajectoire.Count-1;
-        
-        for (int i = 1; i < height+1; i++)
+        for (int i = 1; i < trajectoire.Count; i++)
         {
-            Vector3 prevTrajectoire = trajectoire[i-1];
+            Vector3 prevTrajectoire = trajectoire[i - 1];
             Vector3 posTrajectoire = trajectoire[i];
 
-            //Vector3 axis = new Vector3(0,-1,0);
-            Vector3 axis = Vector3.Cross(normalBezier, posTrajectoire-prevTrajectoire).normalized;
-            float angle = Mathf.Deg2Rad*Vector3.Angle(posTrajectoire-prevTrajectoire,normalBezier);
-            //float angle = 0;
-            
-            //Matrice de rotation
-            Vector3 rowX = new Vector3(Mathf.Cos(angle) + axis.x * axis.x * (1 - Mathf.Cos(angle)),
-                axis.x * axis.y * (1 - Mathf.Cos(angle)) - axis.z * Mathf.Sin(angle),
-                axis.x * axis.z * (1 - Mathf.Cos(angle)) + axis.y * Mathf.Sin(angle));
+            Vector3 normalBezier = Vector3.Cross(prevTrajectoire - posTrajectoire, Vector3.up).normalized;
+            Vector3 milieu = (prevTrajectoire + posTrajectoire) * 0.5f;
 
-            Vector3 rowY = new Vector3(axis.x * axis.y * (1 - Mathf.Cos(angle)) + axis.z * Mathf.Sin(angle),
-                Mathf.Cos(angle) + axis.y * axis.y * (1 - Mathf.Cos(angle)),
-                axis.y * axis.z * (1 - Mathf.Cos(angle)) - axis.x * Mathf.Sin(angle));
-
-            Vector3 rowZ = new Vector3(axis.x * axis.z * (1 - Mathf.Cos(angle)) - axis.y * Mathf.Sin(angle),
-                axis.z * axis.y * (1 - Mathf.Cos(angle)) + axis.x * Mathf.Sin(angle),
-                Mathf.Cos(angle) + axis.z * axis.z * (1 - Mathf.Cos(angle)));
-            
-            //creation de la prochaine ligne du mesh
+            // Création de la prochaine ligne du mesh
             for (int n = 0; n < sizeB; n++)
             {
-                //Debug.Log(n);
                 Vector3 p = bezierPoints[n] - milieu;
-                Vector3 newP = new Vector3(rowX.x * p.x + rowX.y * p.y + rowX.z * p.z,
-                    rowY.x * p.x + rowY.y * p.y + rowY.z * p.z, rowZ.x * p.x + rowZ.y * p.y + rowZ.z * p.z);
+                Vector3 newP = Quaternion.LookRotation(posTrajectoire - prevTrajectoire, normalBezier) * p;
                 nextBezierPoints.Add(newP + posTrajectoire + milieu);
             }
+            
             vertices.AddRange(nextBezierPoints);
             nextBezierPoints.Clear();
         }
-        //Triangulation
-        //Face arrière
+        
+        // Triangulation
+        // Face arrière
         for (int n = 0; n < sizeB - 1; n++)
         {
             tris.Add(0);
             tris.Add(n);
             tris.Add(n + 1);
         }
-        //Face avant
+        // Face avant
         for (int n = 0; n < sizeB - 1; n++)
         {
-            tris.Add(height * sizeB + n + 1);
-            tris.Add(height * sizeB + n);
-            tris.Add(height * sizeB);
+            tris.Add((trajectoire.Count - 2) * sizeB + n + 1);
+            tris.Add((trajectoire.Count - 2) * sizeB + n);
+            tris.Add((trajectoire.Count - 2) * sizeB);
         }
-        for (int i = 0; i < height; i++)
+        for (int i = 0; i < trajectoire.Count - 2; i++)
         {
             for (int n = 0; n < sizeB; n++)
             {
-                //Premier triangle
+                // Premier triangle
                 tris.Add(i * sizeB + n);
                 tris.Add((i + 1) * sizeB + n);
                 tris.Add(i * sizeB + (n + 1) % sizeB);
 
-                //Second triangle
+                // Second triangle
                 tris.Add((i + 1) * sizeB + n);
                 tris.Add((i + 1) * sizeB + (n + 1) % sizeB);
                 tris.Add(i * sizeB + (n + 1) % sizeB);
@@ -424,24 +420,28 @@ public class PointManager : MonoBehaviour
         Mesh mesh = new Mesh();
         mesh.vertices = vertices.ToArray();
         mesh.triangles = tris.ToArray();
-        //mesh.colors32 = colors.ToArray();
         mesh.RecalculateNormals();
         mesh.RecalculateBounds();
         mesh.RecalculateUVDistributionMetric(0);
 
-        // Set up game object with mesh;
         GameObject meshGameObject = new GameObject("Mesh");
         meshGameObject.tag = "Extru";
         MeshRenderer mr = meshGameObject.AddComponent(typeof(MeshRenderer)) as MeshRenderer;
         MeshFilter filter = meshGameObject.AddComponent(typeof(MeshFilter)) as MeshFilter;
         filter.mesh = mesh;
+        
+        // Texture
+        Material material = new Material(Shader.Find("Standard"));
+        material.color = Color.red;
+        mr.material = material;
+        
         mr.material = new Material(Shader.Find("Standard"));
     }
 
      public void GeneralizedExtrudeBezierCurve(List<Vector3> controlPoints, List<Vector3> pathPoints)
     {
         int numPoints = step;
-        int numPathPoints = pathPoints.Count;
+        int numPathPoints = numPoints;
         Vector3[] bezierPoints = new Vector3[numPoints];
 
         // Parcourt les valeurs de paramètre t de 0 à 1 et calcule les points sur la courbe de Bézier
@@ -451,6 +451,15 @@ public class PointManager : MonoBehaviour
             Vector3 point = DeCasteljau(controlPoints, t);
             bezierPoints[i] = point;
         }
+
+        Vector3[] bezierPathPoints = new Vector3[numPoints];
+        for (int i = 0; i < numPoints; i++)
+        {
+            float t = i / (float)(numPoints - 1);
+            Vector3 point = DeCasteljau(pathPoints, t);
+            bezierPathPoints[i] = point;
+        }
+        
 
         // Crée une liste de vertices pour le maillage de l'extrusion
         List<Vector3> vertices = new List<Vector3>();
@@ -462,15 +471,13 @@ public class PointManager : MonoBehaviour
 
             for (int j = 0; j < numPathPoints; j++)
             {
-                Vector3 pathPoint = pathPoints[j];
+                Vector3 pathPoint = bezierPathPoints[j];
                 vertices.Add(bezierPoint + pathPoint);
             }
         }
-
-        // Crée une liste de triangles pour le maillage de l'extrusion
+        
         List<int> triangles = new List<int>();
-
-        // Calcule le nombre de points par ligne
+        
         int numPointsPerLine = numPathPoints;
 
         // Ajoute les triangles pour chaque face de l'extrusion
@@ -491,34 +498,39 @@ public class PointManager : MonoBehaviour
                 triangles.Add(startIndex + j + numPointsPerLine + 1);
             }
         }
+        
+        // Ajoute les triangles pour la face manquante (fermeture du maillage)
+        int startIndexLastRow = (numPoints - 1) * numPointsPerLine;
+        int startIndexFirstRow = 0;
+        for (int j = 0; j < numPointsPerLine - 1; j++)
+        {
+            // Triangle 1 (inversé)
+            triangles.Add(startIndexLastRow + j);
+            triangles.Add(startIndexLastRow + j + 1);
+            triangles.Add(startIndexFirstRow + j);
 
-        // Crée un GameObject pour contenir le maillage de l'extrusion
+            // Triangle 2 (inversé)
+            triangles.Add(startIndexFirstRow + j);
+            triangles.Add(startIndexLastRow + j + 1);
+            triangles.Add(startIndexFirstRow + j + 1);
+        }
+
         GameObject extrusionObject = new GameObject("Extrusion");
         MeshRenderer meshRenderer = extrusionObject.AddComponent<MeshRenderer>();
         MeshFilter meshFilter = extrusionObject.AddComponent<MeshFilter>();
         Mesh mesh = new Mesh();
-
-        // Assigne les vertices et triangles au maillage
+        
         mesh.SetVertices(vertices);
         mesh.SetTriangles(triangles, 0);
-
-        // Recalcule les normales et les tangentes du maillage
         mesh.RecalculateNormals();
         mesh.RecalculateTangents();
-
-        // Assigne le maillage au composant MeshFilter
         meshFilter.mesh = mesh;
 
-        // Crée un nouveau matériau
+        // Texture
         Material material = new Material(Shader.Find("Standard"));
-
-        // Applique une couleur au matériau
         material.color = Color.red;
-
-        // Assigner le matériau au MeshRenderer
         meshRenderer.material = material;
-
-        // Place l'objet extrusion dans la scène
+        
         extrusionObject.transform.position = new Vector3(0f, 0f, 0f);
     }
 
