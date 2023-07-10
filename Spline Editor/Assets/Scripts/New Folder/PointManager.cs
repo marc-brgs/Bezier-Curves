@@ -28,6 +28,8 @@ public class PointManager : MonoBehaviour
     
     // Lissage
     private int step = 100;
+    
+    List<Vector3> curvePoints ;
     public int heightES = 5;
     public float scaleES = 1f;
 
@@ -230,6 +232,15 @@ public class PointManager : MonoBehaviour
                 pathPoints.Add(new Vector3(0f, -4f, 26f));
                 GeneralizedExtrudeBezierCurveWithNormals(controlPoints, pathPoints);
             }
+            
+            if (Input.GetKeyDown(KeyCode.F))
+            {
+                ExtrudeBezierCurveRevolution(controlPoints, 100, 2f);
+            }
+            
+           
+
+
         }
 
 
@@ -533,6 +544,96 @@ public class PointManager : MonoBehaviour
     }
 
 
+    
+    
+    public void ExtrudeBezierCurveRevolution(List<Vector3> controlPoints, int numSteps, float height)
+    {
+        if (controlPoints.Count < 2)
+        {
+            Debug.LogWarning("Il doit y avoir au moins deux points de contrôle pour générer une courbe de Bézier.");
+            return;
+        }
+
+        List<Vector3> vertices = new List<Vector3>(curvePoints);
+
+        float step = (Mathf.PI * 2) / height;
+        float angle = step;
+        Vector3 axis = (curvePoints[curvePoints.Count - 1] - curvePoints[0]).normalized;
+        Vector3 center = (curvePoints[curvePoints.Count - 1] + curvePoints[0]) / 2f;
+
+        for (int i = 0; i < height; i++)
+        {
+            Vector3 rowX = new Vector3(
+                Mathf.Cos(angle) + axis.x * axis.x * (1 - Mathf.Cos(angle)),
+                axis.x * axis.y * (1 - Mathf.Cos(angle)) - axis.z * Mathf.Sin(angle),
+                axis.x * axis.z * (1 - Mathf.Cos(angle)) + axis.y * Mathf.Sin(angle)
+            );
+
+            Vector3 rowY = new Vector3(
+                axis.x * axis.y * (1 - Mathf.Cos(angle)) + axis.z * Mathf.Sin(angle),
+                Mathf.Cos(angle) + axis.y * axis.y * (1 - Mathf.Cos(angle)),
+                axis.y * axis.z * (1 - Mathf.Cos(angle)) - axis.x * Mathf.Sin(angle)
+            );
+
+            Vector3 rowZ = new Vector3(
+                axis.x * axis.z * (1 - Mathf.Cos(angle)) - axis.y * Mathf.Sin(angle),
+                axis.z * axis.y * (1 - Mathf.Cos(angle)) + axis.x * Mathf.Sin(angle),
+                Mathf.Cos(angle) + axis.z * axis.z * (1 - Mathf.Cos(angle))
+            );
+
+            for (int j = 0; j < curvePoints.Count; j++)
+            {
+                Vector3 p = curvePoints[j] - center;
+                Vector3 newP = new Vector3(
+                    rowX.x * p.x + rowX.y * p.y + rowX.z * p.z,
+                    rowY.x * p.x + rowY.y * p.y + rowY.z * p.z,
+                    rowZ.x * p.x + rowZ.y * p.y + rowZ.z * p.z
+                );
+                vertices.Add(newP + center);
+            }
+
+            angle += step;
+        }
+
+        List<int> triangles = new List<int>();
+
+        for (int i = 0; i < height; i++)
+        {
+            int startIndex = i * curvePoints.Count;
+            int nextStartIndex = Mathf.FloorToInt((i + 1) % height) * curvePoints.Count;
+
+
+            for (int j = 0; j < curvePoints.Count; j++)
+            {
+                // Premier triangle
+                triangles.Add(startIndex + j);
+                triangles.Add(nextStartIndex + j);
+                triangles.Add(startIndex + (j + 1) % curvePoints.Count);
+
+                // Deuxième triangle
+                triangles.Add(nextStartIndex + j);
+                triangles.Add(nextStartIndex + (j + 1) % curvePoints.Count);
+                triangles.Add(startIndex + (j + 1) % curvePoints.Count);
+            }
+        }
+
+        Mesh mesh = new Mesh();
+        mesh.vertices = vertices.ToArray();
+        mesh.triangles = triangles.ToArray();
+        mesh.RecalculateNormals();
+        mesh.RecalculateBounds();
+
+        // Crée un GameObject pour contenir le maillage de l'extrusion
+        GameObject extrusionObject = new GameObject("Extrusion");
+        MeshRenderer meshRenderer = extrusionObject.AddComponent<MeshRenderer>();
+        MeshFilter meshFilter = extrusionObject.AddComponent<MeshFilter>();
+        meshFilter.mesh = mesh;
+        meshRenderer.material.color = Color.blue;
+    }
+
+
+
+
 
     private void ClearBezier()
     {
@@ -614,6 +715,8 @@ public class PointManager : MonoBehaviour
         
         bezierLineRenderer.SetPositions(bezierPoints);
         bezierLine = casteljauCurve;
+        
+        curvePoints = new List<Vector3>(bezierPoints);
 
         float elapsedTime = Time.realtimeSinceStartup - startTime;
         Debug.Log("Temps de calcul : " + elapsedTime + " secondes");
@@ -672,6 +775,8 @@ public class PointManager : MonoBehaviour
         
         bezierLineRenderer.SetPositions(bezierPoints);
         bezierLine = pascaleCurve;
+        
+        curvePoints = new List<Vector3>(bezierPoints);
         
         float elapsedTime = Time.realtimeSinceStartup - startTime;
         Debug.Log("Temps de calcul : " + elapsedTime + " secondes");
