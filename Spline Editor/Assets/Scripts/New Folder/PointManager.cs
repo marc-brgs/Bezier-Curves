@@ -207,7 +207,7 @@ public class PointManager : MonoBehaviour
                 ExtrudeBezierCurve(controlPoints, heightES, scaleES);
             }
 
-            if (Input.GetKeyDown(KeyCode.F))
+            if (Input.GetKeyDown(KeyCode.G))
             {
                 List<Vector3> pathPoints = new List<Vector3>();
                 pathPoints.Add(new Vector3(0f, 0f, 0f));
